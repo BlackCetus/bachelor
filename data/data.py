@@ -249,6 +249,8 @@ def getitem(df, index, max):
         data = df.iloc[index]
         seq1 = sequence_to_vector(data[4])
         seq2 = sequence_to_vector(data[5])
+        if len(seq1) > max or len(seq2) > max:
+            return None
         padd_sequence(seq1, max)
         padd_sequence(seq2, max)
         tensor = tensorize(seq1, seq2)
