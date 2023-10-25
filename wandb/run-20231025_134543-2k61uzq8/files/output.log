@@ -11,3 +11,26 @@ Epoch 4/25, Validation Loss: 3.370795249938965, Accuracy: 62.7627365356623
 Epoch 5/25, Average Loss: 0.02198833744374237, Accuracy: 63.604966139954854
 Epoch 5/25, Validation Loss: 3.8414053916931152, Accuracy: 63.05967976710335
 Epoch 6/25, Average Loss: 0.01322664282218154, Accuracy: 63.63882618510158
+Epoch 6/25, Validation Loss: 3.855956554412842, Accuracy: 62.91120815138282
+Epoch 7/25, Average Loss: 0.012169853243644215, Accuracy: 63.63882618510158
+Epoch 7/25, Validation Loss: 4.370674133300781, Accuracy: 62.96069868995633
+Epoch 8/25, Average Loss: 0.012086939856609595, Accuracy: 63.61625282167043
+Epoch 8/25, Validation Loss: 3.8826708793640137, Accuracy: 62.861717612809315
+Epoch 9/25, Average Loss: 0.007753504857343311, Accuracy: 63.57110609480813
+Epoch 9/25, Validation Loss: 4.818465232849121, Accuracy: 62.68850072780204
+Traceback (most recent call last):
+  File "main.py", line 47, in <module>
+    "epochs": num_epochs,
+  File "/nfs/home/students/t.reim/.conda/envs/mamba2/lib/python3.8/site-packages/torch/utils/data/dataloader.py", line 630, in __next__
+    data = self._next_data()
+  File "/nfs/home/students/t.reim/.conda/envs/mamba2/lib/python3.8/site-packages/torch/utils/data/dataloader.py", line 674, in _next_data
+    data = self._dataset_fetcher.fetch(index)  # may raise StopIteration
+  File "/nfs/home/students/t.reim/.conda/envs/mamba2/lib/python3.8/site-packages/torch/utils/data/_utils/fetch.py", line 51, in fetch
+    data = [self.dataset[idx] for idx in possibly_batched_index]
+  File "/nfs/home/students/t.reim/.conda/envs/mamba2/lib/python3.8/site-packages/torch/utils/data/_utils/fetch.py", line 51, in <listcomp>
+    data = [self.dataset[idx] for idx in possibly_batched_index]
+  File "/nfs/home/students/t.reim/bachelor/pytorchtest/data/data.py", line 274, in __getitem__
+    padd_sequence(seq2, self.max)
+  File "/nfs/home/students/t.reim/bachelor/pytorchtest/data/data.py", line 224, in padd_sequence
+    while len(sequence) < maximum:
+KeyboardInterrupt

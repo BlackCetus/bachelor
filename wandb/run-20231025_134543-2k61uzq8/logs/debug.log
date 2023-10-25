@@ -24,3 +24,4 @@ config: {'learning_rate': 0.01, 'epochs': 25, 'batchsize': 128, 'dataset': 'Huan
 2023-10-25 13:45:45,997 INFO    MainThread:3567606 [wandb_run.py:_redirect():2119] Wrapping output streams.
 2023-10-25 13:45:45,997 INFO    MainThread:3567606 [wandb_run.py:_redirect():2144] Redirects installed.
 2023-10-25 13:45:45,998 INFO    MainThread:3567606 [wandb_init.py:init():845] run started, returning control to user process
+2023-10-25 16:12:40,076 WARNING MsgRouterThr:3567606 [router.py:message_loop():77] message_loop has been closed
