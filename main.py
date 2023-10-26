@@ -10,37 +10,30 @@ import numpy as np
 import wandb
 
 
-def metrics( y_true, y_pred ):
-    # Count positive samples.
-    diff = y_true + y_pred - 1
-    true_positive = sum( diff == 1 )
-    pred_positive = sum( y_pred == 1 )
-    real_positive = sum( y_true == 1 )
 
-    #print('TP={}, pred pos={}, real pos={}'.format(true_positive, pred_positive, real_positive))
-    
-    # If there are no true samples, fix the F1 score at 0.
+def metrics(y_true, y_pred):
+    true_positive = torch.sum((y_true == 1) & (y_pred == 1)).item()
+    pred_positive = torch.sum(y_pred == 1).item()
+    real_positive = torch.sum(y_true == 1).item()
+    true_negative = torch.sum((y_true == 0) & (y_pred == 0)).item()
+
     if real_positive == 0:
-        return 0
+        precision = recall = f1_score = accuracy = 0
+    else:
+        precision = true_positive / pred_positive if pred_positive > 0 else 0
+        recall = true_positive / real_positive if real_positive > 0 else 0
+        f1_score = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0
+        accuracy = (true_positive + true_negative) / len(y_true)
 
-    # How many selected items are relevant?
-    precision = true_positive / pred_positive
-
-    # How many relevant items are selected?
-    recall = true_positive / real_positive
-
-    accuracy = (true_positive + (len(y_true) - real_positive - pred_positive)) / len(y_true)
-
-    # Calculate f1_score
-    f1_score = 2 * (precision * recall) / (precision + recall)
     return accuracy, precision, recall, f1_score
 
 
-train_data = "/nfs/home/students/t.reim/bachelor/pytorchtest/data/train_all_seq.csv"
-test_data = "/nfs/home/students/t.reim/bachelor/pytorchtest/data/test_all_seq.csv"
+train_data = "/nfs/home/students/t.reim/bachelor/pytorchtest/data/train_all_seq_1166.csv"
+test_data = "/nfs/home/students/t.reim/bachelor/pytorchtest/data/test_all_seq_1166.csv"
 learning_rate = 0.01
 num_epochs = 25
 bs = 128
+max = 1166
 
 wandb.init(project="bachelor",
            config={"learning_rate": learning_rate,
@@ -48,7 +41,6 @@ wandb.init(project="bachelor",
                    "batchsize": bs,
                    "dataset": "Huang"})
 
-max = max(d.max_sequence_size(train_data), d.max_sequence_size(test_data))
 insize = max*24
 
 model = m2.FC2_20_2Dense(insize=insize)
@@ -83,8 +75,8 @@ for epoch in range(num_epochs):
         loss.backward()
         optimizer.step()
         epoch_loss += loss.item()
-        predicted_labels = outputs.argmax(dim=1)
-        met = metrics(labels, predicted_labels)
+        predicted_labels = torch.round(outputs.float())
+        met = metrics(labels.to(1), predicted_labels)
         epoch_acc += met[0]
         epoch_prec += met[1]
         epoch_rec  += met[2]
@@ -122,8 +114,8 @@ for epoch in range(num_epochs):
             val_labels = val_batch['interaction']
             val_labels = val_labels.unsqueeze(1).float()
             val_outputs = model(val_inputs.to(1))
-            predicted_labels = val_outputs.argmax(dim=1)
-            met = metrics(val_labels, predicted_labels)
+            predicted_labels = torch.round(val_outputs.float())
+            met = metrics(val_labels.to(1), predicted_labels)
             val_acc += met[0]
             val_prec += met[1]
             val_rec  += met[2]

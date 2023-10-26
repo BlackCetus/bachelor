@@ -272,8 +272,6 @@ class MyDataset(data.Dataset):
         data = self.df.iloc[index]
         seq1 = sequence_to_vector(data['sequence_a'])
         seq2 = sequence_to_vector(data['sequence_b'])
-        if len(seq1) > max or len(seq2) > max:
-            return None
         padd_sequence(seq1, self.max)
         padd_sequence(seq2, self.max)
         seq_array = np.array([seq1, seq2])
