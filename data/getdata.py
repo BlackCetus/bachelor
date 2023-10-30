@@ -46,17 +46,22 @@ def addseqtodf_ff(df, fasta_df):
     for index, row in df.iterrows():
         id1 = row['Id1']
         id2 = row['Id2']
-        a = str(fasta_df[fasta_df["ID"] == id1]["Sequence"].values[0])
-        b = str(fasta_df[fasta_df["ID"] == id2]["Sequence"].values[0])
+        if id1 in fasta_df["ID"].values:
+            a = str(fasta_df[fasta_df["ID"] == id1]["Sequence"].values[0])
+        else:   
+            a = get_seq(id1)  
+            print(id1)
+        if id2 in fasta_df["ID"].values:
+            b = str(fasta_df[fasta_df["ID"] == id2]["Sequence"].values[0])
+        else:   
+            b = get_seq(id2) 
+            print(id2)
         if len(a) <= 1166 and len(b) <= 1166:
             seq_a.append(a)
             seq_b.append(b)
         else:
-            drop.append(index) 
-    print(len(df))
-    print(len(drop))          
-    df = df.drop(drop)    
-    print(len(df))        
+            drop.append(index)          
+    df = df.drop(drop)          
     df['sequence_a'] = seq_a
     df['sequence_b'] = seq_b
     return df
@@ -78,10 +83,10 @@ fasta_df = read_fasta_as_df('bachelor/pytorchtest/data/human_swissprot_oneliner.
 
 print(fasta_df)
 
-train_pos = file2df("bachelor/pytorchtest/data/huang_train_pos.txt", 1)
-train_neg = file2df("bachelor/pytorchtest/data/huang_train_neg.txt", 0)
-test_pos = file2df("bachelor/pytorchtest/data/huang_test_pos.txt", 1)
-test_neg = file2df("bachelor/pytorchtest/data/huang_test_pos.txt", 0)
+train_pos = file2df("bachelor/pytorchtest/data/pan_train_pos.txt", 1)
+train_neg = file2df("bachelor/pytorchtest/data/pan_train_neg.txt", 0)
+test_pos = file2df("bachelor/pytorchtest/data/pan_test_pos.txt", 1)
+test_neg = file2df("bachelor/pytorchtest/data/pan_test_pos.txt", 0)
 
 print(1)
 print(train_pos)
@@ -93,12 +98,21 @@ print(2)
 print(train_all)
 
 
-#train_all_seq = addseqtodf(train_all)
-#test_all_seq = addseqtodf(test_all)
+
 
 train_all_seq = addseqtodf_ff(train_all, fasta_df)
 test_all_seq = addseqtodf_ff(test_all, fasta_df)
 
-train_all_seq.to_csv('bachelor/pytorchtest/data/train_all_seq_1166.csv')
-test_all_seq.to_csv('bachelor/pytorchtest/data/test_all_seq_1166.csv')
+train_all_seq.to_csv('bachelor/pytorchtest/data/pan_train_all_seq_1166.csv')
+test_all_seq.to_csv('bachelor/pytorchtest/data/pan_test_all_seq_1166.csv')
+'''
+train = pd.read_csv('bachelor/pytorchtest/data/train_all_seq_1166.csv')
+ones = train['Interact'].value_counts().get(1, 0)
+zeros = train['Interact'].value_counts().get(0, 0)
+print("ones: "+str(ones)+", zeros: "+str(zeros))
 
+test = pd.read_csv('bachelor/pytorchtest/data/test_all_seq_1166.csv')
+ones = test['Interact'].value_counts().get(1, 0)
+zeros = test['Interact'].value_counts().get(0, 0)
+print("ones: "+str(ones)+", zeros: "+str(zeros))
+'''

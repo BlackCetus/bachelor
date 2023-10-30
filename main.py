@@ -28,18 +28,18 @@ def metrics(y_true, y_pred):
     return accuracy, precision, recall, f1_score
 
 
-train_data = "/nfs/home/students/t.reim/bachelor/pytorchtest/data/train_all_seq_1166.csv"
-test_data = "/nfs/home/students/t.reim/bachelor/pytorchtest/data/test_all_seq_1166.csv"
-learning_rate = 0.01
+train_data = "/nfs/home/students/t.reim/bachelor/pytorchtest/data/pan_train_all_seq_1166.csv"
+test_data = "/nfs/home/students/t.reim/bachelor/pytorchtest/data/pan_test_all_seq_1166.csv"
+learning_rate = 0.001
 num_epochs = 25
-bs = 128
+bs = 512
 max = 1166
 
 wandb.init(project="bachelor",
            config={"learning_rate": learning_rate,
                    "epochs": num_epochs,
                    "batchsize": bs,
-                   "dataset": "Huang"})
+                   "dataset": "pan"})
 
 insize = max*24
 
@@ -122,18 +122,17 @@ for epoch in range(num_epochs):
             val_f1  += met[3]
             val_loss += criterion(val_outputs, val_labels.to(1))
 
-    batch_avrg_loss = val_loss / len(vdataloader)
-    avg_acc = val_acc / len(dataloader)
-    avg_prec = val_prec / len(dataloader)
-    avg_rec = val_rec / len(dataloader)
-    avg_f1 = val_f1 / len(dataloader)
-    avg_loss = val_loss / len(dataloader)
+    batch_avg_loss = val_loss / len(vdataloader)
+    avg_acc = val_acc / len(vdataloader)
+    avg_prec = val_prec / len(vdataloader)
+    avg_rec = val_rec / len(vdataloader)
+    avg_f1 = val_f1 / len(vdataloader)
     wandb.log({
-        "val_loss": avg_loss,
+        "val_loss": batch_avg_loss,
         "val_accuracy": avg_acc,
         "val_precision": avg_prec,
         "val_recall": avg_rec,
         "val_f1_score": avg_f1
     })      
-    print(f"Epoch {epoch+1}/{num_epochs}, Average Val Loss: {avg_loss}, Val Accuracy: {avg_acc}, Val Precision: {avg_prec}, Val Recall: {avg_rec}, Val F1 Score: {avg_f1}")
-torch.save(model.state_dict(), '/nfs/home/students/t.reim/bachelor/pytorchtest/models/first_model.pt')
+    print(f"Epoch {epoch+1}/{num_epochs}, Average Val Loss: {batch_avg_loss}, Val Accuracy: {avg_acc}, Val Precision: {avg_prec}, Val Recall: {avg_rec}, Val F1 Score: {avg_f1}")
+torch.save(model.state_dict(), '/nfs/home/students/t.reim/bachelor/pytorchtest/models/first_model_pan.pt')
