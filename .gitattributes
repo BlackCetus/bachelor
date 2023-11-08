@@ -1,0 +1,1 @@
+"bachelor/pytorchtest/data/gold_stand/*" filter=lfs diff=lfs merge=lfs -text
