@@ -1,0 +1,10 @@
+Using Subset
+Subset Size:  54962
+Val Subset Size:  21789
+Using CUDA
+Traceback (most recent call last):
+  File "/nfs/home/students/t.reim/bachelor/pytorchtest/main.py", line 83, in <module>
+    device = torch.device()
+TypeError: device() received an invalid combination of arguments - got (), but expected one of:
+ * (torch.device device)
+ * (str type, int index)

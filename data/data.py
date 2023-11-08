@@ -5,6 +5,7 @@ import torch.cuda as cuda
 import pandas as pd
 import numpy as np
 
+import os
 import sys
 import collections
 
@@ -260,22 +261,57 @@ def getitem(df, index, max):
                   'interaction': data[3]}
         return sample
 
+
+def get_embedding_per_tok(dirpath, protein_id):
+    embedding = torch.load(os.path.join(dirpath, protein_id + ".pt"))
+    return embedding['representations'][33]
+
+def get_embedding_mean(dirpath, protein_id):
+    embedding = torch.load(os.path.join(dirpath, protein_id + ".pt"))
+    return embedding['mean_representations'][36]          
+
+
 class MyDataset(data.Dataset):
-    def __init__(self, filename, max):
+    def __init__(self, filename, max=1166, embedding=True, mean=True, embedding_directory="/nfs/home/students/t.reim/bachelor/pytorchtest/data/embeddings/esm2_t36_3B/"):
         self.df = pd.read_csv(filename)  # Load the data from the CSV file
         self.max = max
+        self.embedding = embedding
+        self.mean = mean
+        self.embedding_directory = embedding_directory
  
     def __len__(self):
         return len(self.df)
  
     def __getitem__(self, index):
         data = self.df.iloc[index]
-        seq1 = sequence_to_vector(data['sequence_a'])
-        seq2 = sequence_to_vector(data['sequence_b'])
-        padd_sequence(seq1, self.max)
-        padd_sequence(seq2, self.max)
-        seq_array = np.array([seq1, seq2])
-        tensor = torch.tensor(seq_array)
-        #tensor = tensorize(seq1, seq2)
+        if self.embedding == True:
+            
+            if self.mean == False:
+                seq1 = get_embedding_per_tok(self.embedding_directory, data['Id1'])
+                seq2 = get_embedding_per_tok(self.embedding_directory, data['Id12'])
+                tensor = torch.stack([seq1, seq2])
+            else:
+                seq1 = get_embedding_mean(self.embedding_directory, data['Id1'])
+                seq2 = get_embedding_mean(self.embedding_directory, data['Id2'])
+                tensor = torch.stack([seq1, seq2])
+                
+        else:    
+            seq1 = sequence_to_vector(data['sequence_a'])
+            seq2 = sequence_to_vector(data['sequence_b'])
+            padd_sequence(seq1, self.max)
+            padd_sequence(seq2, self.max)
+            seq_array = np.array([seq1, seq2])
+            tensor = torch.tensor(seq_array)
+
         sample = {'name1': data['Id1'], 'name2': data['Id2'], 'tensor': tensor, 'interaction': data['Interact']}
         return sample
+
+
+
+
+# Test area
+'''
+import torch
+embedtest = torch.load("/nfs/home/students/t.reim/bachelor/pytorchtest/data/embeddings/esm2_t36_3B/A0A0A0MRZ9.pt")
+print(embedtest['mean_representations'][36].shape)  
+'''
