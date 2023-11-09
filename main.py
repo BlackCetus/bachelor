@@ -32,9 +32,9 @@ def metrics(y_true, y_pred):
 
 data_name = "gold_stand"
 learning_rate = 0.001
-num_epochs = 50
-bs = 1024
-max = 1166
+num_epochs = 25
+bs = 2048
+max = None
 subset = True
 subset_size = 0.5
 use_embeddings = True
@@ -61,6 +61,7 @@ if False:
     parser.add_argument('-m', '--mean_embedding', type=bool, default=True, help='use mean embedding')
     parser.add_argument('-ed', '--embedding_dim', type=int, default=2560, help='embedding dimension')
     parser.add_argument('-wb', '--use_wandb', type=bool, default=True, help='use wandb')
+    
 
     args = parser.parse_args()
 
@@ -82,10 +83,18 @@ print("Learning Rate: ", learning_rate)
 print("Epochs: ", num_epochs)
 print("Batchsize: ", bs)
 
-train_data = "/nfs/home/students/t.reim/bachelor/pytorchtest/data/" + data_name + "/" + data_name + "_train_all_seq_1166.csv"
-test_data = "/nfs/home/students/t.reim/bachelor/pytorchtest/data/" + data_name + "/" + data_name + "_test_all_seq_1166.csv"
+
+train_data = "/nfs/home/students/t.reim/bachelor/pytorchtest/data/" + data_name + "/" + data_name + "_train_all_seq.csv"
+test_data = "/nfs/home/students/t.reim/bachelor/pytorchtest/data/" + data_name + "/" + data_name + "_test_all_seq.csv"
+
+if mean_embedding == True:
+    emb_type = 'mean'
+else:
+    emb_type = 'per_tok'
+
+
 if use_embeddings == True:
-    embedding_dir = "/nfs/home/students/t.reim/bachelor/pytorchtest/embeddings/" + emb_name + "/"
+    embedding_dir = "/nfs/home/students/t.reim/bachelor/pytorchtest/data/embeddings/" + emb_name + "/" + emb_type + "/"
 
 if use_wandb == True:
     wandb.init(project="bachelor",
@@ -98,20 +107,11 @@ if use_wandb == True:
                     "use_embeddings": use_embeddings,
                     "embedding_name": emb_name,
                     "mean_embedding": mean_embedding,
+                    "embedding_dim": embedding_dim,
                     "dataset": data_name})
 
-if use_embeddings == True:
-    print("Using Embeddings: ", emb_name, " Mean: ", mean_embedding)
-    insize = embedding_dim
-else:     
-    print("Not Using Embeddings")  
-    print("Max Sequence Length: ", max) 
-    insize = max*24
 
-model = m2.FC2_20_2Dense(insize=insize)
-criterion = nn.BCELoss()
-optimizer = torch.optim.Adam(model.parameters(), lr= learning_rate)
-dataset = d.MyDataset(train_data, max, use_embeddings, mean_embedding)
+dataset = d.MyDataset(train_data, max, use_embeddings, mean_embedding, embedding_dir)
 
 if subset == True:
     sampler = data.RandomSampler(dataset, num_samples=int(len(dataset)*subset_size), replacement=True)
@@ -122,7 +122,7 @@ else:
     dataloader = data.DataLoader(dataset, batch_size=bs, shuffle=True)
 
 
-vdataset = d.MyDataset(test_data, max, use_embeddings, mean_embedding)
+vdataset = d.MyDataset(test_data, max, use_embeddings, mean_embedding, embedding_dir)
 
 if subset == True:
     sampler = data.RandomSampler(vdataset, num_samples=int(len(vdataset)*subset_size), replacement=True)
@@ -131,12 +131,26 @@ if subset == True:
 else:
     vdataloader = data.DataLoader(vdataset, batch_size=bs, shuffle=True)
 
+if use_embeddings == True:
+    print("Using Embeddings: ", emb_name, " Mean: ", mean_embedding)
+    insize = embedding_dim
+else:     
+    print("Not Using Embeddings")  
+    print("Max Sequence Length: ", dataset.__max__())
+    insize = dataset.__max__()*24
+
+model = m2.FC2_20_2Dense(insize=insize)
+criterion = nn.BCELoss()
+optimizer = torch.optim.Adam(model.parameters(), lr= learning_rate)  
 
 if torch.cuda.is_available():
     print("Using CUDA")
     model = model.cuda()
     criterion = criterion.cuda()
     device = torch.device("cuda")
+else:    
+    print("Using CPU")
+    device = torch.device("cpu")    
 
 
 for epoch in range(num_epochs):
@@ -220,10 +234,7 @@ for epoch in range(num_epochs):
         })    
     print(f"Epoch {epoch+1}/{num_epochs}, Average Val Loss: {avg_loss}, Val Accuracy: {avg_acc}, Val Precision: {avg_prec}, Val Recall: {avg_rec}, Val F1 Score: {avg_f1}")
 if use_embeddings == True:
-    if mean_embedding == True:
-        torch.save(model.state_dict(), '/nfs/home/students/t.reim/bachelor/pytorchtest/models/fc_rich_'+ data_name +'_'+ emb_name+'_mean.pt')
-    else:
-        torch.save(model.state_dict(), '/nfs/home/students/t.reim/bachelor/pytorchtest/models/fc_rich_'+ data_name +'_'+ emb_name+'_per_tok.pt')    
+    torch.save(model.state_dict(), '/nfs/home/students/t.reim/bachelor/pytorchtest/models/fc_rich_'+ data_name +'_'+ emb_name+'_'+ emb_type+'.pt')
 else:
     torch.save(model.state_dict(), '/nfs/home/students/t.reim/bachelor/pytorchtest/models/fc_rich_'+ data_name +'_no_emb.pt')
 

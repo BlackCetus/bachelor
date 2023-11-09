@@ -77,12 +77,12 @@ def addseqtodf_ff(df, fasta_df):
             add_to_fasta('bachelor/pytorchtest/data/swissprot/human_swissprot_oneliner.fasta', id2, b)
             fasta_df = read_fasta_as_df('bachelor/pytorchtest/data/swissprot/human_swissprot_oneliner.fasta')
             print(id2)
-        if len(a) <= 1166 and len(b) <= 1166:
-            seq_a.append(a)
-            seq_b.append(b)
-        else:
-            drop.append(index)          
-    df = df.drop(drop)          
+        #if len(a) <= 1166 and len(b) <= 1166:
+        seq_a.append(a)
+        seq_b.append(b)
+        #else:
+        #    drop.append(index)          
+    #df = df.drop(drop)          
     df['sequence_a'] = seq_a
     df['sequence_b'] = seq_b
     return df
@@ -123,12 +123,12 @@ test_all_seq = addseqtodf_ff(test_all, fasta_df)
 val_all_seq = addseqtodf_ff(val_all, fasta_df)
 
 # save to csv
-train_all_seq.to_csv('bachelor/pytorchtest/data/gold_stand/train_intra1_seq_1166.csv')
-test_all_seq.to_csv('bachelor/pytorchtest/data/gold_stand/test_intra2_seq_1166.csv')
-val_all_seq.to_csv('bachelor/pytorchtest/data/gold_stand/val_intra0_seq_1166.csv')
+train_all_seq.to_csv('bachelor/pytorchtest/data/gold_stand/train_intra1_all_seq.csv')
+test_all_seq.to_csv('bachelor/pytorchtest/data/gold_stand/test_intra2_all_seq.csv')
+val_all_seq.to_csv('bachelor/pytorchtest/data/gold_stand/val_intra0_all_seq.csv')
 
 
 # remove second column
-remove_second_column('bachelor/pytorchtest/data/gold_stand/train_intra1_seq_1166.csv')
-remove_second_column('bachelor/pytorchtest/data/gold_stand/test_intra2_seq_1166.csv')
-remove_second_column('bachelor/pytorchtest/data/gold_stand/val_intra0_seq_1166.csv')
+remove_second_column('bachelor/pytorchtest/data/gold_stand/train_intra1_seq.csv')
+remove_second_column('bachelor/pytorchtest/data/gold_stand/test_intra2_seq.csv')
+remove_second_column('bachelor/pytorchtest/data/gold_stand/val_intra0_seq.csv')

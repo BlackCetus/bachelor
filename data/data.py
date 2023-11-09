@@ -233,6 +233,15 @@ def padd_sequence_better(sequence, maximum):
     while len(sequence) < maximum:
         sequence.extend(0)
 
+def padd_embedding(embedding, maximum):
+    '''
+    Padds the data with 0s to have them all be the same size
+    following the better functions
+    '''
+    padding = torch.zeros((maximum - embedding.shape[0], embedding.shape[1]))
+    return torch.cat((embedding, padding), dim=0)
+
+
 def tensorize(sequence1, sequence2):
     '''Make a tensor with two sequences of numbers 
     returns a FloatTensor of dimension 3xMax_size
@@ -240,26 +249,6 @@ def tensorize(sequence1, sequence2):
     the tensors in the cpu and only when training is it loaded to gpu
     '''
     return torch.FloatTensor([sequence1, sequence2]).unsqueeze(0)
-
-def getitem(df, index, max):
-        '''
-        Gets one sample from the elements of the dataset 
-        and formats the sequences to be useable by the NN
-        in the form of a cuda.tensor
-        '''
-        data = df.iloc[index]
-        seq1 = sequence_to_vector(data[4])
-        seq2 = sequence_to_vector(data[5])
-        if len(seq1) > max or len(seq2) > max:
-            return None
-        padd_sequence(seq1, max)
-        padd_sequence(seq2, max)
-        tensor = tensorize(seq1, seq2)
-        sample = {'name1': data[1],
-                  'name2': data[2],
-                  'tensor': tensor,
-                  'interaction': data[3]}
-        return sample
 
 
 def get_embedding_per_tok(dirpath, protein_id):
@@ -271,24 +260,37 @@ def get_embedding_mean(dirpath, protein_id):
     return embedding['mean_representations'][36]          
 
 
+
 class MyDataset(data.Dataset):
-    def __init__(self, filename, max=1166, embedding=True, mean=True, embedding_directory="/nfs/home/students/t.reim/bachelor/pytorchtest/data/embeddings/esm2_t36_3B/"):
+    def __init__(self, filename, max_len=None, embedding=True, mean=True,
+                  embedding_directory="/nfs/home/students/t.reim/bachelor/pytorchtest/data/embeddings/esm2_t36_3B/"):
         self.df = pd.read_csv(filename)  # Load the data from the CSV file
-        self.max = max
+        if max_len is None:
+            self.max = max(max(self.df['sequence_a'].apply(len)), max(self.df['sequence_b'].apply(len)))
+        else:
+            self.max = max_len
         self.embedding = embedding
         self.mean = mean
         self.embedding_directory = embedding_directory
- 
+        self.df = self.df[(self.df['sequence_a'].apply(len) <= self.max) & (self.df['sequence_b'].apply(len) <= self.max)]
+        self.df = self.df.reset_index(drop=True)
+       
+        
+        
     def __len__(self):
         return len(self.df)
  
+    def __max__(self):	
+        return self.max
+
     def __getitem__(self, index):
         data = self.df.iloc[index]
         if self.embedding == True:
             
             if self.mean == False:
                 seq1 = get_embedding_per_tok(self.embedding_directory, data['Id1'])
-                seq2 = get_embedding_per_tok(self.embedding_directory, data['Id12'])
+                seq2 = get_embedding_per_tok(self.embedding_directory, data['Id2'])
+
                 tensor = torch.stack([seq1, seq2])
             else:
                 seq1 = get_embedding_mean(self.embedding_directory, data['Id1'])
@@ -305,13 +307,18 @@ class MyDataset(data.Dataset):
 
         sample = {'name1': data['Id1'], 'name2': data['Id2'], 'tensor': tensor, 'interaction': data['Interact']}
         return sample
+    
+        
 
 
 
 
 # Test area
+
 '''
 import torch
-embedtest = torch.load("/nfs/home/students/t.reim/bachelor/pytorchtest/data/embeddings/esm2_t36_3B/A0A0A0MRZ9.pt")
-print(embedtest['mean_representations'][36].shape)  
+embedtest = torch.load("/nfs/home/students/t.reim/bachelor/pytorchtest/data/embeddings/esm2_t33_650/per_tok/A0A0A0MRZ9.pt")
+print(embedtest['representations'][33].shape)
+padded_embedding = padd_embedding(embedtest['representations'][33], 1166)
+print(padded_embedding.shape)
 '''
