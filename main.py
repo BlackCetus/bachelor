@@ -3,7 +3,6 @@ import models.first_pytorch as m
 import models.fc2_20_2_dense as m2
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 import torch.utils.data as data
 import pandas as pd
 import numpy as np
@@ -33,15 +32,14 @@ def metrics(y_true, y_pred):
 data_name = "gold_stand"
 learning_rate = 0.001
 num_epochs = 25
-bs = 2048
-max = None
+bs = 256
+max = 1166
 subset = True
 subset_size = 0.5
 use_embeddings = True
-emb_name = "esm2_t36_3B"
-mean_embedding = True
-embedding_dim = 2560
-use_wandb = True
+mean_embedding = False
+embedding_dim = 1280
+use_wandb = False
 
 
 # example call: python main.py -d gold_stand -lr 0.001 -epo 50 -bs 1024 --max 1166
@@ -57,7 +55,6 @@ if False:
     parser.add_argument('-s', '--subset', type=bool, default=False, help='use subset')
     parser.add_argument('-ss', '--subset_size', type=float, default=0.5, help='subset size')
     parser.add_argument('-e', '--use_embeddings', type=bool, default=True, help='use embeddings')
-    parser.add_argument('-en', '--emb_name', type=str, default='esm2_t36_3B', help='name of embedding')
     parser.add_argument('-m', '--mean_embedding', type=bool, default=True, help='use mean embedding')
     parser.add_argument('-ed', '--embedding_dim', type=int, default=2560, help='embedding dimension')
     parser.add_argument('-wb', '--use_wandb', type=bool, default=True, help='use wandb')
@@ -73,7 +70,6 @@ if False:
     subset = args.subset
     subset_size = args.subset_size
     use_embeddings = args.use_embeddings
-    emb_name = args.emb_name
     mean_embedding = args.mean_embedding
     embedding_dim = args.embedding_dim
     use_wandb = args.use_wandb
@@ -87,13 +83,20 @@ print("Batchsize: ", bs)
 train_data = "/nfs/home/students/t.reim/bachelor/pytorchtest/data/" + data_name + "/" + data_name + "_train_all_seq.csv"
 test_data = "/nfs/home/students/t.reim/bachelor/pytorchtest/data/" + data_name + "/" + data_name + "_test_all_seq.csv"
 
-if mean_embedding == True:
+if embedding_dim == 2560:
+    emb_name = 'esm2_t36_3B'
+    layer = 36
+elif embedding_dim == 1280: 
+    emb_name = 'esm2_t33_650'
+    layer = 33
+
+if mean_embedding:
     emb_type = 'mean'
 else:
     emb_type = 'per_tok'
 
 
-if use_embeddings == True:
+if use_embeddings:
     embedding_dir = "/nfs/home/students/t.reim/bachelor/pytorchtest/data/embeddings/" + emb_name + "/" + emb_type + "/"
 
 if use_wandb == True:
@@ -111,9 +114,9 @@ if use_wandb == True:
                     "dataset": data_name})
 
 
-dataset = d.MyDataset(train_data, max, use_embeddings, mean_embedding, embedding_dir)
+dataset = d.MyDataset(train_data, layer, max, use_embeddings, mean_embedding, embedding_dir)
 
-if subset == True:
+if subset:
     sampler = data.RandomSampler(dataset, num_samples=int(len(dataset)*subset_size), replacement=True)
     dataloader = data.DataLoader(dataset, batch_size=bs, sampler=sampler)
     print("Using Subset")
@@ -122,16 +125,16 @@ else:
     dataloader = data.DataLoader(dataset, batch_size=bs, shuffle=True)
 
 
-vdataset = d.MyDataset(test_data, max, use_embeddings, mean_embedding, embedding_dir)
+vdataset = d.MyDataset(test_data, layer, max, use_embeddings, mean_embedding, embedding_dir)
 
-if subset == True:
+if subset:
     sampler = data.RandomSampler(vdataset, num_samples=int(len(vdataset)*subset_size), replacement=True)
     vdataloader = data.DataLoader(vdataset, batch_size=bs, sampler=sampler)
     print("Val Subset Size: ", int(len(vdataset)*subset_size))
 else:
     vdataloader = data.DataLoader(vdataset, batch_size=bs, shuffle=True)
 
-if use_embeddings == True:
+if use_embeddings:
     print("Using Embeddings: ", emb_name, " Mean: ", mean_embedding)
     insize = embedding_dim
 else:     
@@ -139,7 +142,7 @@ else:
     print("Max Sequence Length: ", dataset.__max__())
     insize = dataset.__max__()*24
 
-model = m2.FC2_20_2Dense(insize=insize)
+model = m2.FC2_20_2Dense(insize=insize, mean=mean_embedding, max_len=max)
 criterion = nn.BCELoss()
 optimizer = torch.optim.Adam(model.parameters(), lr= learning_rate)  
 
@@ -233,7 +236,7 @@ for epoch in range(num_epochs):
             "val_f1_score": avg_f1
         })    
     print(f"Epoch {epoch+1}/{num_epochs}, Average Val Loss: {avg_loss}, Val Accuracy: {avg_acc}, Val Precision: {avg_prec}, Val Recall: {avg_rec}, Val F1 Score: {avg_f1}")
-if use_embeddings == True:
+if use_embeddings:
     torch.save(model.state_dict(), '/nfs/home/students/t.reim/bachelor/pytorchtest/models/fc_rich_'+ data_name +'_'+ emb_name+'_'+ emb_type+'.pt')
 else:
     torch.save(model.state_dict(), '/nfs/home/students/t.reim/bachelor/pytorchtest/models/fc_rich_'+ data_name +'_no_emb.pt')

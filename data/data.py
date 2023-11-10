@@ -251,18 +251,18 @@ def tensorize(sequence1, sequence2):
     return torch.FloatTensor([sequence1, sequence2]).unsqueeze(0)
 
 
-def get_embedding_per_tok(dirpath, protein_id):
+def get_embedding_per_tok(dirpath, protein_id, layer):
     embedding = torch.load(os.path.join(dirpath, protein_id + ".pt"))
-    return embedding['representations'][33]
+    return embedding['representations'][layer]
 
-def get_embedding_mean(dirpath, protein_id):
+def get_embedding_mean(dirpath, protein_id, layer):
     embedding = torch.load(os.path.join(dirpath, protein_id + ".pt"))
-    return embedding['mean_representations'][36]          
+    return embedding['mean_representations'][layer]          
 
 
 
 class MyDataset(data.Dataset):
-    def __init__(self, filename, max_len=None, embedding=True, mean=True,
+    def __init__(self, filename, layer, max_len=None, embedding=True, mean=True,
                   embedding_directory="/nfs/home/students/t.reim/bachelor/pytorchtest/data/embeddings/esm2_t36_3B/"):
         self.df = pd.read_csv(filename)  # Load the data from the CSV file
         if max_len is None:
@@ -274,6 +274,7 @@ class MyDataset(data.Dataset):
         self.embedding_directory = embedding_directory
         self.df = self.df[(self.df['sequence_a'].apply(len) <= self.max) & (self.df['sequence_b'].apply(len) <= self.max)]
         self.df = self.df.reset_index(drop=True)
+        self.layer = layer
        
         
         
@@ -290,11 +291,12 @@ class MyDataset(data.Dataset):
             if self.mean == False:
                 seq1 = get_embedding_per_tok(self.embedding_directory, data['Id1'])
                 seq2 = get_embedding_per_tok(self.embedding_directory, data['Id2'])
-
+                seq1 = padd_embedding(seq1, self.max)
+                seq2 = padd_embedding(seq2, self.max)
                 tensor = torch.stack([seq1, seq2])
             else:
-                seq1 = get_embedding_mean(self.embedding_directory, data['Id1'])
-                seq2 = get_embedding_mean(self.embedding_directory, data['Id2'])
+                seq1 = get_embedding_mean(self.embedding_directory, data['Id1'], self.layer)
+                seq2 = get_embedding_mean(self.embedding_directory, data['Id2'], self.layer)
                 tensor = torch.stack([seq1, seq2])
                 
         else:    
