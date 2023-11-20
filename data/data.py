@@ -276,8 +276,6 @@ class MyDataset(data.Dataset):
         self.df = self.df.reset_index(drop=True)
         self.layer = layer
        
-        
-        
     def __len__(self):
         return len(self.df)
  
@@ -289,8 +287,8 @@ class MyDataset(data.Dataset):
         if self.embedding == True:
             
             if self.mean == False:
-                seq1 = get_embedding_per_tok(self.embedding_directory, data['Id1'])
-                seq2 = get_embedding_per_tok(self.embedding_directory, data['Id2'])
+                seq1 = get_embedding_per_tok(self.embedding_directory, data['Id1'], self.layer)
+                seq2 = get_embedding_per_tok(self.embedding_directory, data['Id2'], self.layer)
                 seq1 = padd_embedding(seq1, self.max)
                 seq2 = padd_embedding(seq2, self.max)
                 tensor = torch.stack([seq1, seq2])
@@ -311,7 +309,35 @@ class MyDataset(data.Dataset):
         return sample
     
         
+class dataset2d(data.Dataset):
+    def __init__(self, filename, layer, max_len=None, embedding_directory="/nfs/home/students/t.reim/bachelor/pytorchtest/data/embeddings/esm2_t36_3B/"):
+        
+        self.df = pd.read_csv(filename)
 
+        if max_len is None:
+            self.max = max(max(self.df['sequence_a'].apply(len)), max(self.df['sequence_b'].apply(len)))
+        else:
+            self.max = max_len
+        self.embedding_directory = embedding_directory
+        self.df = self.df[(self.df['sequence_a'].apply(len) <= self.max) & (self.df['sequence_b'].apply(len) <= self.max)]
+        self.df = self.df.reset_index(drop=True)
+        self.layer = layer
+       
+        
+    def __len__(self):
+        return len(self.df)
+ 
+    def __max__(self):	
+        return self.max
+
+    def __getitem__(self, index):
+        data = self.df.iloc[index]
+          
+        #seq1 = get_embedding_per_tok(self.embedding_directory, data['Id1'], self.layer)
+        #seq2 = get_embedding_per_tok(self.embedding_directory, data['Id2'], self.layer)
+                
+        sample = {'name1': data['Id1'], 'name2': data['Id2'], 'interaction': data['Interact']}
+        return sample
 
 
 

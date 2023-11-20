@@ -41,15 +41,12 @@ class FC2_20_2Dense(nn.Module):
         self.mean = mean
 
     def forward(self, x):
-        print(x.shape)
         test = x.split(1, dim=1)
 
         x1 = test[0]
-        print(x1.shape)
         x1 = x1.to(torch.float32)
         x1 = x1.contiguous()
         x1 = x1.view(x.size(0),-1, 1280)
-        print(x1.shape)
 
         x2 = test[1]
         x2 = x2.to(torch.float32)
@@ -57,7 +54,6 @@ class FC2_20_2Dense(nn.Module):
         x2 = x2.view(x.size(0),-1, 1280)
 
         x1 = F.relu(self.fc1(x1))
-        print(x1.shape)
         if not self.mean:
             x1 = x1.unsqueeze(1)  # Add an extra dimension
         x1 = self.bn1(x1)
@@ -69,7 +65,6 @@ class FC2_20_2Dense(nn.Module):
         x1 = self.bn2(x1)
         if not self.mean:
             x1 = x1.squeeze(1)  
-        print(x1.shape)
 
         x2 = F.relu(self.fc3(x2))
         if not self.mean:
@@ -83,7 +78,6 @@ class FC2_20_2Dense(nn.Module):
         x2 = self.bn4(x2)
         if not self.mean:
             x2 = x2.squeeze(1) 
-        print(x2.shape)
 
         if not self.mean:
             x = torch.cat((x1,x2), 2)
@@ -98,11 +92,9 @@ class FC2_20_2Dense(nn.Module):
         x = self.fc6(x)
         x = x.view(x.size(0), -1)
         x = self.fc7(x)
-        print(x.shape)
 
         # classification is done using a sigmoid function
         x = torch.sigmoid(x)
-        print(x.shape)
         return x
     
     def get_classes(self):

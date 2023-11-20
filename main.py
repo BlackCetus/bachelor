@@ -1,11 +1,10 @@
 import data.data as d
 import models.first_pytorch as m
 import models.fc2_20_2_dense as m2
+import models.dscript_like as m3
 import torch
 import torch.nn as nn
 import torch.utils.data as data
-import pandas as pd
-import numpy as np
 import wandb
 import argparse
 
@@ -30,12 +29,13 @@ def metrics(y_true, y_pred):
 
 
 data_name = "gold_stand"
+model_name = "dscript_like"
 learning_rate = 0.001
 num_epochs = 25
-bs = 256
-max = 1166
+bs = 1024
+max = None
 subset = True
-subset_size = 0.5
+subset_size = 0.2
 use_embeddings = True
 mean_embedding = False
 embedding_dim = 1280
@@ -43,30 +43,32 @@ use_wandb = False
 
 
 # example call: python main.py -d gold_stand -lr 0.001 -epo 50 -bs 1024 --max 1166
-#               -s True -ss 0.5 -e True -en esm2_t36_3B -m True -ed 2560 -wb True
+#               -s True -ss 0.5 -e True -m True -ed 2560 -wb True
 
-if False:
+if True:
     parser = argparse.ArgumentParser(description='PyTorch Training')
-    parser.add_argument('-d', '--data_name', type=str, default='gold_stand', help='name of dataset')
+    parser.add_argument('-data', '--data_name', type=str, default='gold_stand', help='name of dataset')
+    parser.add_argument('-model', '--model_name', type=str, default='dscript_like', help='name of model')
     parser.add_argument('-lr', '--learning_rate', type=float, default=0.001, help='learning rate')
-    parser.add_argument('-epo', '--num_epochs', type=int, default=25, help='number of epochs')
-    parser.add_argument('-bs', '--batch_size', type=int, default=1024, help='batch size')
-    parser.add_argument('--max', type=int, default=1166, help='max sequence length')
-    parser.add_argument('-s', '--subset', type=bool, default=False, help='use subset')
-    parser.add_argument('-ss', '--subset_size', type=float, default=0.5, help='subset size')
-    parser.add_argument('-e', '--use_embeddings', type=bool, default=True, help='use embeddings')
-    parser.add_argument('-m', '--mean_embedding', type=bool, default=True, help='use mean embedding')
-    parser.add_argument('-ed', '--embedding_dim', type=int, default=2560, help='embedding dimension')
-    parser.add_argument('-wb', '--use_wandb', type=bool, default=True, help='use wandb')
+    parser.add_argument('-epoch', '--num_epochs', type=int, default=25, help='number of epochs')
+    parser.add_argument('-batch', '--batch_size', type=int, default=1024, help='batch size')
+    parser.add_argument('-max', '--max_seq_len', type=int, default=None, help='max sequence length')
+    parser.add_argument('-sub', '--subset', action='store_true', help='use subset')
+    parser.add_argument('-subsize', '--subset_size', type=float, default=0.5, help='subset size')
+    parser.add_argument('-emb', '--use_embeddings', action='store_true', help='use embeddings')
+    parser.add_argument('-mean', '--mean_embedding', action='store_true', help='use mean embedding')
+    parser.add_argument('-emb_dim', '--embedding_dim', type=int, default=2560, help='embedding dimension')
+    parser.add_argument('-wandb', '--use_wandb', action='store_true', help='use wandb')
     
 
     args = parser.parse_args()
 
     data_name = args.data_name
+    model_name = args.model_name
     learning_rate = args.learning_rate
     num_epochs = args.num_epochs
-    bs = args.bs
-    max = args.max
+    bs = args.batch_size
+    max = args.max_seq_len
     subset = args.subset
     subset_size = args.subset_size
     use_embeddings = args.use_embeddings
@@ -74,11 +76,14 @@ if False:
     embedding_dim = args.embedding_dim
     use_wandb = args.use_wandb
 
-print("Using Data: ", data_name)
-print("Learning Rate: ", learning_rate)
-print("Epochs: ", num_epochs)
-print("Batchsize: ", bs)
+# some cases, could be done better or more elegant
 
+if model_name == "dscript_like":
+    mean_embedding = False
+    use_embeddings = True
+    dscript = True
+else:
+    dscript = False
 
 train_data = "/nfs/home/students/t.reim/bachelor/pytorchtest/data/" + data_name + "/" + data_name + "_train_all_seq.csv"
 test_data = "/nfs/home/students/t.reim/bachelor/pytorchtest/data/" + data_name + "/" + data_name + "_test_all_seq.csv"
@@ -99,6 +104,7 @@ else:
 if use_embeddings:
     embedding_dir = "/nfs/home/students/t.reim/bachelor/pytorchtest/data/embeddings/" + emb_name + "/" + emb_type + "/"
 
+
 if use_wandb == True:
     wandb.init(project="bachelor",
             config={"learning_rate": learning_rate,
@@ -112,9 +118,23 @@ if use_wandb == True:
                     "mean_embedding": mean_embedding,
                     "embedding_dim": embedding_dim,
                     "dataset": data_name})
+    
+print("Using Data: ", data_name)
+print("Using Model: ", model_name)
+print("Using Wandb: ", use_wandb)
+print("Learning Rate: ", learning_rate)
+print("Max Sequence Length: ", max)
+print("Epochs: ", num_epochs)
+print("Batchsize: ", bs)    
 
 
-dataset = d.MyDataset(train_data, layer, max, use_embeddings, mean_embedding, embedding_dir)
+# create Datasets, dscript needs dataset where embeddings are created later on in the model call
+
+
+if dscript:
+    dataset = d.dataset2d(train_data, layer, max, embedding_dir)
+else:
+    dataset = d.MyDataset(train_data, layer, max, use_embeddings, mean_embedding, embedding_dir)
 
 if subset:
     sampler = data.RandomSampler(dataset, num_samples=int(len(dataset)*subset_size), replacement=True)
@@ -125,7 +145,10 @@ else:
     dataloader = data.DataLoader(dataset, batch_size=bs, shuffle=True)
 
 
-vdataset = d.MyDataset(test_data, layer, max, use_embeddings, mean_embedding, embedding_dir)
+if dscript:
+    vdataset = d.dataset2d(test_data, layer, max, embedding_dir)
+else:
+    vdataset = d.MyDataset(test_data, layer, max, use_embeddings, mean_embedding, embedding_dir)
 
 if subset:
     sampler = data.RandomSampler(vdataset, num_samples=int(len(vdataset)*subset_size), replacement=True)
@@ -142,7 +165,10 @@ else:
     print("Max Sequence Length: ", dataset.__max__())
     insize = dataset.__max__()*24
 
-model = m2.FC2_20_2Dense(insize=insize, mean=mean_embedding, max_len=max)
+if model_name == "dscript_like":
+    model = m3.DScriptLike(insize=insize, d=100, w=3, h=20, x0 = 0.5, k = 20)
+elif model_name == "richoux":
+    model = m2.FC2_20_2Dense(insize=insize, mean=mean_embedding, max_len=max)
 criterion = nn.BCELoss()
 optimizer = torch.optim.Adam(model.parameters(), lr= learning_rate)  
 
@@ -164,11 +190,14 @@ for epoch in range(num_epochs):
     epoch_f1 = 0.0
     model.train()
     for batch in dataloader:
-        inputs = batch['tensor']
+        optimizer.zero_grad()
+        if dscript:
+            outputs = model.batch_iterate(batch, device, layer, embedding_dir)
+        else:
+            tensor = batch['tensor'].to(device)
+            outputs = model(tensor) 
         labels = batch['interaction']
         labels = labels.unsqueeze(1).float()
-        optimizer.zero_grad()
-        outputs = model(inputs.to(device)) 
         loss = criterion(outputs, labels.to(device))
         loss.backward()
         optimizer.step()
@@ -210,10 +239,14 @@ for epoch in range(num_epochs):
     val_f1 = 0.0
     with torch.no_grad():
         for val_batch in vdataloader:
-            val_inputs = val_batch['tensor']
+            if dscript:
+                val_outputs = model.batch_iterate(val_batch, device, layer, embedding_dir)
+            else:
+                val_inputs = val_batch['tensor'].to(device)
+                val_outputs = model(val_inputs)
+
             val_labels = val_batch['interaction']
             val_labels = val_labels.unsqueeze(1).float()
-            val_outputs = model(val_inputs.to(device))
             predicted_labels = torch.round(val_outputs.float())
             met = metrics(val_labels.to(device), predicted_labels)
             val_acc += met[0]
@@ -237,7 +270,7 @@ for epoch in range(num_epochs):
         })    
     print(f"Epoch {epoch+1}/{num_epochs}, Average Val Loss: {avg_loss}, Val Accuracy: {avg_acc}, Val Precision: {avg_prec}, Val Recall: {avg_rec}, Val F1 Score: {avg_f1}")
 if use_embeddings:
-    torch.save(model.state_dict(), '/nfs/home/students/t.reim/bachelor/pytorchtest/models/fc_rich_'+ data_name +'_'+ emb_name+'_'+ emb_type+'.pt')
+    torch.save(model.state_dict(), '/nfs/home/students/t.reim/bachelor/pytorchtest/models/pretrained/'+model_name+ '_'+ data_name +'_'+ emb_name+'_'+ emb_type+'.pt')
 else:
-    torch.save(model.state_dict(), '/nfs/home/students/t.reim/bachelor/pytorchtest/models/fc_rich_'+ data_name +'_no_emb.pt')
+    torch.save(model.state_dict(), '/nfs/home/students/t.reim/bachelor/pytorchtest/models/pretrained/'+model_name+'_'+ data_name +'_no_emb.pt')
 

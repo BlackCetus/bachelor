@@ -26,5 +26,5 @@ def get_embeddings(dirpath):
 embdic = get_embeddings(embedding_directory)   
 
 with open('/nfs/home/students/t.reim/bachelor/pytorchtest/data/swissprot/human_swissprot_embed_dict.pkl', 'wb') as f:
-    pickle.dump(embdic, f)
+    embedding = pickle.dump(embdic, f)
 embedding['representations'][33]
