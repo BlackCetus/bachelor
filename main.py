@@ -32,13 +32,13 @@ data_name = "gold_stand"
 model_name = "dscript_like"
 learning_rate = 0.001
 num_epochs = 25
-bs = 1024
+bs = 10
 max = None
 subset = True
 subset_size = 0.2
 use_embeddings = True
 mean_embedding = False
-embedding_dim = 1280
+embedding_dim = 2560
 use_wandb = False
 
 
@@ -94,6 +94,9 @@ if embedding_dim == 2560:
 elif embedding_dim == 1280: 
     emb_name = 'esm2_t33_650'
     layer = 33
+elif embedding_dim == 5120:
+    emb_name = 'esm2_t48_65B'
+    layer = 48
 
 if mean_embedding:
     emb_type = 'mean'
@@ -117,7 +120,8 @@ if use_wandb == True:
                     "embedding_name": emb_name,
                     "mean_embedding": mean_embedding,
                     "embedding_dim": embedding_dim,
-                    "dataset": data_name})
+                    "dataset": data_name,
+                    "model": model_name})
     
 print("Using Data: ", data_name)
 print("Using Model: ", model_name)
@@ -166,7 +170,7 @@ else:
     insize = dataset.__max__()*24
 
 if model_name == "dscript_like":
-    model = m3.DScriptLike(insize=insize, d=100, w=3, h=20, x0 = 0.5, k = 20)
+    model = m3.DScriptLike(insize=insize, d=100, w=7, h=50, x0 = 0.5, k = 20)
 elif model_name == "richoux":
     model = m2.FC2_20_2Dense(insize=insize, mean=mean_embedding, max_len=max)
 criterion = nn.BCELoss()

@@ -100,6 +100,20 @@ def read_fasta_as_df(fasta):
     return df
 
 
+def filter_fasta(input_file, output_file, max_length):
+    with open(input_file, "r") as input_handle, open(output_file, "w") as output_handle:
+        sequences = SeqIO.parse(input_handle, "fasta")
+        filtered = (record for record in sequences if len(record.seq) <= max_length)
+        for record in filtered:
+            # Manually write ID and sequence to keep sequence on one line
+            output_handle.write(f">{record.id}\n{str(record.seq)}\n")
+
+
+filter_fasta("/nfs/home/students/t.reim/bachelor/pytorchtest/data/swissprot/human_swissprot_oneliner.fasta",
+            "/nfs/home/students/t.reim/bachelor/pytorchtest/data/swissprot/human_swissprot_oneliner_10k.fasta",
+            10000)
+
+'''
 # get fasta
 fasta_df = read_fasta_as_df('bachelor/pytorchtest/data/swissprot/human_swissprot_oneliner.fasta')
 
@@ -132,3 +146,4 @@ val_all_seq.to_csv('bachelor/pytorchtest/data/gold_stand/val_intra0_all_seq.csv'
 remove_second_column('bachelor/pytorchtest/data/gold_stand/train_intra1_seq.csv')
 remove_second_column('bachelor/pytorchtest/data/gold_stand/test_intra2_seq.csv')
 remove_second_column('bachelor/pytorchtest/data/gold_stand/val_intra0_seq.csv')
+'''
